@@ -5,7 +5,6 @@ import '../widgets/custom_textfield.dart';
 import '../core/theme/app_pallete.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart'; 
-// [NEW] Import MainWrapper agar bisa masuk ke menu utama
 import 'main_wrapper.dart'; 
 
 class LoginScreen extends StatefulWidget {
@@ -39,33 +38,16 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 60),
               
-              // 1. LOGO SECTION
-              Column(
-                children: [
-                  Text(
-                    "Sewa",
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: AppPallete.black,
-                      height: 1.0,
-                    ),
-                  ),
-                  Text(
-                    "Yuk",
-                    style: GoogleFonts.poppins(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: AppPallete.primary,
-                      height: 1.0,
-                    ),
-                  ),
-                ],
+              Center(
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  width: 200, 
+                  fit: BoxFit.contain,
+                ),
               ),
               
               const SizedBox(height: 40),
               
-              // 2. SUBTITLE
               Text(
                 "Masuk ke akun kamu menggunakan email yang terdaftar",
                 textAlign: TextAlign.center,
@@ -77,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 32),
               
-              // 3. FORM INPUT
+              //FORM INPUT
               CustomTextField(
                 controller: _emailController,
                 hintText: 'Masukan email',
@@ -107,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 12),
               
-              // 4. FORGOT PASSWORD
+              // LUPA PASSWORD
               Align(
                 alignment: Alignment.centerRight,
                 child: GestureDetector(
@@ -132,12 +114,10 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 32),
               
-              // 5. BUTTON LOGIN (UPDATED)
+              // BUTTON LOGIN
               CustomButton(
                 text: "Masuk",
                 onPressed: () {
-                  // [UPDATED] Navigasi ke MainWrapper dan hapus history back
-                  // Ini mensimulasikan login berhasil
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const MainWrapper()),
@@ -148,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 24),
               
-              // 6. REGISTER LINK
+              // REGISTER LINK
               GestureDetector(
                 onTap: () {
                   Navigator.push(

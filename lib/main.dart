@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:tubes_abp/pages/splash_screen.dart';
 import 'core/theme/app_theme.dart';
-// Update import ini:
 import 'pages/login_screen.dart'; 
 
 void main() {
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'Sewa Yuk',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      home: const LoginScreen(),
+      home: const SplashScreen(),
     );
   }
 }
