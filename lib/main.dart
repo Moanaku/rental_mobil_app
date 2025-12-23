@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tubes_abp/pages/splash_screen.dart';
 import 'core/theme/app_theme.dart';
-import 'pages/login_screen.dart'; 
 
 void main() {
   runApp(const MyApp());

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
 import '../widgets/vehicle_card.dart';
-import '../models/vehicle_model.dart';
+import '../models/vehicle_model.dart'; 
 import '../widgets/custom_textfield.dart';
-import 'detail_vehicle_screen.dart'; // [PENTING] Import halaman detail
+import 'detail_vehicle_screen.dart';
+import '../services/api_service.dart'; 
 
 class BrandDetailScreen extends StatefulWidget {
-  final String brandName; // Contoh: "Honda"
+  final String brandName;
 
   const BrandDetailScreen({super.key, required this.brandName});
 
@@ -15,33 +16,77 @@ class BrandDetailScreen extends StatefulWidget {
 }
 
 class _BrandDetailScreenState extends State<BrandDetailScreen> {
+  final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
 
   // 0: Semua, 1: Mobil, 2: Motor
   int _selectedCategory = 0;
   final List<String> _filters = ["Semua", "Mobil", "Motor"];
 
+  // List untuk menampung data dari API (Menggunakan class Vehicle baru)
+  List<Vehicle> _allVehicles = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVehicles();
+    _searchController.addListener(() {
+      setState(() {}); // Rebuild saat mengetik
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Fungsi mengambil data dari API Laravel
+  Future<void> _fetchVehicles() async {
+    try {
+      final vehicles = await _apiService.getVehicles();
+      
+      if (mounted) {
+        setState(() {
+          // Filter awal: Hanya ambil kendaraan yang sesuai Brand halaman ini
+          _allVehicles = vehicles.where((v) => 
+            v.brandName.toLowerCase() == widget.brandName.toLowerCase()
+          ).toList();
+          
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat data: $e')),
+        );
+      }
+    }
+  }
+
   // Logika Filter Ganda (Brand + Kategori + Search)
-  List<VehicleModel> get _filteredVehicles {
+  List<Vehicle> get _filteredVehicles {
     String query = _searchController.text.toLowerCase();
-    String brandFilter = widget.brandName.toLowerCase();
 
-    return dummyVehicles.where((v) {
-      // 1. Filter Nama Brand (Wajib)
-      bool matchesBrand = v.name.toLowerCase().contains(brandFilter);
-
-      // 2. Filter Search Bar (Opsional)
+    // Kita filter dari _allVehicles (data API), bukan dummyVehicles
+    return _allVehicles.where((v) {
+      
+      // 1. Filter Search Bar (Pencarian Nama Kendaraan)
       bool matchesQuery = v.name.toLowerCase().contains(query);
 
-      // 3. Filter Kategori (Mobil/Motor)
+      // 2. Filter Kategori (Mobil/Motor)
+      // PERBAIKAN: Menggunakan properti 'category' sesuai Model baru
       bool matchesCategory = true;
       if (_selectedCategory == 1) {
-        matchesCategory = v.type == "Mobil";
+        matchesCategory = v.category == "Mobil"; 
       } else if (_selectedCategory == 2) {
-        matchesCategory = v.type == "Motor";
+        matchesCategory = v.category == "Motor"; 
       }
 
-      return matchesBrand && matchesQuery && matchesCategory;
+      return matchesQuery && matchesCategory;
     }).toList();
   }
 
@@ -148,55 +193,57 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
 
             const SizedBox(height: 24),
 
-            // 3. LIST KENDARAAN
+            // 3. LIST KENDARAAN (Dari API)
             Expanded(
-              child: AnimatedBuilder(
-                animation: _searchController,
-                builder: (context, child) {
-                  final data = _filteredVehicles;
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator()) 
+                : AnimatedBuilder(
+                    animation: _searchController,
+                    builder: (context, child) {
+                      final data = _filteredVehicles;
 
-                  if (data.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.no_crash_outlined,
-                            size: 60,
-                            color: AppPallete.greyText,
+                      if (data.isEmpty) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.no_crash_outlined,
+                                size: 60,
+                                color: AppPallete.greyText,
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                "Tidak ada unit ${widget.brandName} \n${_filters[_selectedCategory]}",
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: AppPallete.greyText),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            "Tidak ada unit ${widget.brandName} tipe ${_filters[_selectedCategory]}",
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppPallete.greyText),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
+                        );
+                      }
 
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: data.length,
-                    itemBuilder: (context, index) {
-                      return VehicleCard(
-                        vehicle: data[index],
-                        // [PERBAIKAN] Navigasi ke DetailVehicleScreen
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  DetailVehicleScreen(vehicle: data[index]),
-                            ),
+                      return ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        itemCount: data.length,
+                        itemBuilder: (context, index) {
+                          // Pastikan VehicleCard sudah mendukung model 'Vehicle' baru
+                          return VehicleCard(
+                            vehicle: data[index],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      DetailVehicleScreen(vehicle: data[index]),
+                                ),
+                              );
+                            },
                           );
                         },
                       );
                     },
-                  );
-                },
-              ),
+                  ),
             ),
           ],
         ),

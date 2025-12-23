@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
-import '../widgets/brand_large_card.dart';
-
-// [BARU] Import halaman detail agar bisa dinavigasi
+import '../widgets/brand_large_card.dart'; // Pastikan widget ini sudah disesuaikan
 import 'brand_detail_screen.dart';
+import '../services/api_service.dart';
+import '../models/brand_model.dart';
 
 class BrandListScreen extends StatefulWidget {
   const BrandListScreen({super.key});
@@ -13,66 +13,41 @@ class BrandListScreen extends StatefulWidget {
 }
 
 class _BrandListScreenState extends State<BrandListScreen> {
-  // 0: Semua, 1: Mobil, 2: Motor
-  int _selectedIndex = 0;
+  final ApiService _apiService = ApiService();
+  
+  // Data dari API
+  List<Brand> _brands = [];
+  bool _isLoading = true;
 
-  // Label Filter
+  // Filter Statis (UI Only, karena API brand biasanya tidak punya kategori)
+  int _selectedIndex = 0;
   final List<String> _filters = ["Semua Kendaraan", "Mobil", "Motor"];
 
-  // Data Dummy Brand (Simulasi Database)
-  List<Map<String, dynamic>> get _currentData {
-    final allBrands = [
-      {
-        "name": "Honda",
-        "icon": Icons.commute,
-        "unit": "5",
-        "price": "Rp 100.000",
-        "type": "Mobil",
-      },
-      {
-        "name": "Mitsubishi",
-        "icon": Icons.car_repair,
-        "unit": "3",
-        "price": "Rp 100.000",
-        "type": "Mobil",
-      },
-      {
-        "name": "Suzuki",
-        "icon": Icons.electric_car,
-        "unit": "4",
-        "price": "Rp 100.000",
-        "type": "Mobil",
-      },
-      {
-        "name": "Toyota",
-        "icon": Icons.directions_car,
-        "unit": "6",
-        "price": "Rp 100.000",
-        "type": "Mobil",
-      },
-      {
-        "name": "Yamaha",
-        "icon": Icons.two_wheeler,
-        "unit": "6",
-        "price": "Rp 50.000",
-        "type": "Motor",
-      },
-      {
-        "name": "Kawasaki",
-        "icon": Icons.two_wheeler,
-        "unit": "2",
-        "price": "Rp 150.000",
-        "type": "Motor",
-      },
-    ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchBrands();
+  }
 
-    // Logika Filter
-    if (_selectedIndex == 0) return allBrands; // Tampilkan Semua
-    if (_selectedIndex == 1)
-      return allBrands.where((e) => e['type'] == 'Mobil').toList();
-    if (_selectedIndex == 2)
-      return allBrands.where((e) => e['type'] == 'Motor').toList();
-    return [];
+  // Mengambil data Brand dari API
+  Future<void> _fetchBrands() async {
+    try {
+      final brands = await _apiService.getBrands();
+      if (mounted) {
+        setState(() {
+          _brands = brands;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        debugPrint("Error fetching brands: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat brand: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -152,33 +127,44 @@ class _BrandListScreenState extends State<BrandListScreen> {
 
             const SizedBox(height: 24),
 
-            // 2. LIST DATA
+            // 2. LIST DATA (Dari API)
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                itemCount: _currentData.length,
-                itemBuilder: (context, index) {
-                  final brand = _currentData[index];
-                  return BrandLargeCard(
-                    brandName: brand['name'],
-                    icon: brand['icon'],
-                    totalUnits: brand['unit'],
-                    startPrice: brand['price'],
-                    onTap: () {
-                      // [UPDATE] Navigasi ke BrandDetailScreen saat diklik
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => BrandDetailScreen(
-                            brandName:
-                                brand['name'], // Kirim nama brand (contoh: "Honda")
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator()) 
+                : _brands.isEmpty
+                  ? const Center(child: Text("Belum ada brand tersedia"))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      itemCount: _brands.length,
+                      itemBuilder: (context, index) {
+                        final brand = _brands[index];
+                        return BrandLargeCard(
+                          brandName: brand.name,
+                          
+                          // [PENTING] Kirim URL Logo ke Widget
+                          // Pastikan BrandLargeCard Anda diubah agar menerima String imageUrl
+                          // bukan IconData.
+                          imageUrl: brand.logoUrl, 
+                          
+                          // Data dummy karena tabel brands biasanya simpel
+                          totalUnits: "Cek Unit", 
+                          startPrice: "Lihat Detail", 
+                          
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BrandDetailScreen(
+                                  // Kirim ID jika BrandDetailScreen butuh ID untuk fetch by brand_id
+                                  // atau kirim nama jika fetch by name
+                                  brandName: brand.name, 
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),

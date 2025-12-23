@@ -16,8 +16,10 @@ dependencies:
   intl: ^0.18.1
   # (Opsional) Jika nanti ada icon custom berbentuk SVG
   flutter_svg: ^2.0.9 
+  shared_preferences: ^2.2.2
 
   cupertino_icons: ^1.0.8
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:

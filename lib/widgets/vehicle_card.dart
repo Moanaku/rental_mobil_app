@@ -1,23 +1,77 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
-import '../models/vehicle_model.dart';
+import '../models/vehicle_model.dart'; 
+import '../services/wishlist_service.dart';
 
-class VehicleCard extends StatelessWidget {
-  final VehicleModel vehicle;
+class VehicleCard extends StatefulWidget {
+  final Vehicle vehicle; 
   final VoidCallback? onTap;
-  final bool isLiked;
-
+  
   const VehicleCard({
     super.key,
     required this.vehicle,
     this.onTap,
-    this.isLiked = false,
   });
 
   @override
+  State<VehicleCard> createState() => _VehicleCardState();
+}
+
+class _VehicleCardState extends State<VehicleCard> {
+  // Ambil instance service wishlist
+  final WishlistService _wishlistService = WishlistService();
+
+  // Fungsi helper untuk format Rupiah
+  String _formatCurrency(double price) {
+    if (price == 0) return "Rp 0"; 
+    
+    try {
+      String priceStr = price.toInt().toString();
+      String result = '';
+      int count = 0;
+      for (int i = priceStr.length - 1; i >= 0; i--) {
+        result = priceStr[i] + result;
+        count++;
+        if (count == 3 && i > 0) {
+          result = '.$result';
+          count = 0;
+        }
+      }
+      return 'Rp $result';
+    } catch (e) {
+      return "Rp Error";
+    }
+  }
+
+  // Helper widget agar kode lebih bersih
+  Widget _buildSpecText(String text) {
+    String displayText = (text.isEmpty || text == 'null' || text.toLowerCase() == 'null') ? '-' : text;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppPallete.greyText.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        displayText,
+        style: const TextStyle(
+          color: AppPallete.greyText,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Cek status favorite dari service saat build
+    // Ini memastikan status icon selalu sinkron dengan data di service
+    bool isLiked = _wishlistService.isFavorite(widget.vehicle.id);
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
@@ -44,68 +98,86 @@ class VehicleCard extends StatelessWidget {
                   margin: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    color: Colors.grey[100], // Warna dasar jika loading
+                    color: Colors.grey[100],
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Image.network(
-                      vehicle.imageAsset,
+                      widget.vehicle.imageUrl,
                       fit: BoxFit.cover,
-                      // [SOLUSI] Ini jaring pengamannya. Jika link mati, tampilkan ikon.
                       errorBuilder: (context, error, stackTrace) {
                         return const Center(
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                Icons.image_not_supported_outlined,
-                                color: Colors.grey,
-                                size: 40,
-                              ),
+                              Icon(Icons.broken_image, color: Colors.grey, size: 40),
                               SizedBox(height: 4),
-                              Text(
-                                "No Image",
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 10,
-                                ),
-                              ),
+                              Text("Gagal Muat", style: TextStyle(color: Colors.grey, fontSize: 10)),
                             ],
                           ),
                         );
                       },
-                      // Opsional: Tampilkan loading saat gambar sedang diambil
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
-                        return Center(
-                          child: CircularProgressIndicator(
-                            value: loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                : null,
-                            strokeWidth: 2,
-                          ),
+                        return const Center(
+                          child: SizedBox(
+                            width: 24, 
+                            height: 24, 
+                            child: CircularProgressIndicator(strokeWidth: 2)
+                          )
                         );
                       },
                     ),
                   ),
                 ),
-                // Icon Love
+                
+                // [FITUR BARU] Icon Love yang Berfungsi
                 Positioned(
                   top: 24,
                   right: 24,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppPallete.white.withOpacity(0.9),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isLiked ? Icons.favorite : Icons.favorite_border,
-                      size: 20,
-                      color: isLiked
-                          ? AppPallete.redError
-                          : AppPallete.greyText,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        // 1. Panggil service untuk toggle (tambah/hapus)
+                        _wishlistService.toggleWishlist(widget.vehicle);
+                      });
+                      
+                      // 2. Tampilkan Feedback SnackBar
+                      ScaffoldMessenger.of(context).clearSnackBars(); // Hapus snackbar lama biar ga numpuk
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isLiked 
+                            ? "Dihapus dari Favorite" 
+                            : "Ditambahkan ke Favorite"),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating, // Tampil melayang
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          margin: const EdgeInsets.all(10),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppPallete.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          )
+                        ]
+                      ),
+                      child: Icon(
+                        // Jika isLiked true, tampilkan hati penuh (favorite)
+                        // Jika false, tampilkan hati kosong (favorite_border)
+                        isLiked ? Icons.favorite : Icons.favorite_border,
+                        size: 22,
+                        // Jika isLiked true, warnanya Merah
+                        // Jika false, warnanya Abu-abu
+                        color: isLiked ? AppPallete.redError : AppPallete.greyText,
+                      ),
                     ),
                   ),
                 ),
@@ -119,40 +191,49 @@ class VehicleCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    vehicle.name,
+                    widget.vehicle.name.isNotEmpty ? widget.vehicle.name : "Tanpa Nama",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: AppPallete.black,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Divider(color: AppPallete.border.withOpacity(0.6)),
                   const SizedBox(height: 8),
+                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            vehicle.cc,
-                            style: const TextStyle(
-                              color: AppPallete.greyText,
-                              fontSize: 12,
-                            ),
+                      // Kiri: Spesifikasi (Scrollable)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              _buildSpecText(widget.vehicle.engineCapacity),
+                              const SizedBox(width: 8),
+
+                              _buildSpecText(widget.vehicle.transmission),
+                              const SizedBox(width: 8),
+
+                              _buildSpecText(widget.vehicle.fuel),
+                              const SizedBox(width: 8),
+                              
+                              if (widget.vehicle.seats > 0)
+                                _buildSpecText("${widget.vehicle.seats} Kursi"),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Text(
-                            vehicle.transmission,
-                            style: const TextStyle(
-                              color: AppPallete.greyText,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
+                      
+                      const SizedBox(width: 8),
+
+                      // Kanan: Harga
                       Text(
-                        vehicle.price,
+                        _formatCurrency(widget.vehicle.pricePerDay),
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

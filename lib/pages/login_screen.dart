@@ -3,9 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../core/theme/app_pallete.dart';
+import '../services/api_service.dart';
+import '../services/auth_service.dart'; // Service untuk simpan token
 import 'register_screen.dart';
-import 'forgot_password_screen.dart'; 
-import 'main_wrapper.dart'; 
+import 'forgot_password_screen.dart';
+import 'main_wrapper.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,13 +19,73 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
   bool _isPasswordObscure = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _login() async {
+    // 1. Validasi Input
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email dan Password harus diisi!")),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final apiService = ApiService();
+    
+    // 2. Panggil API Login (Sekarang return Map)
+    final result = await apiService.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (!mounted) return;
+
+    // 3. Cek Hasil
+    if (result['success'] == true) {
+      // ✅ Simpan token dan user data
+      await AuthService.saveToken(result['token'] ?? '');
+      await AuthService.saveUserData(result['data']);
+
+      // Navigate ke Main Screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainWrapper()),
+        (route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Login Berhasil'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      // ❌ Login Gagal
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Login Gagal'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   @override
@@ -41,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Center(
                 child: Image.asset(
                   'assets/images/logo.png',
-                  width: 200, 
+                  width: 200,
                   fit: BoxFit.contain,
                 ),
               ),
@@ -59,11 +121,12 @@ class _LoginScreenState extends State<LoginScreen> {
               
               const SizedBox(height: 32),
               
-              //FORM INPUT
+              // FORM INPUT
               CustomTextField(
                 controller: _emailController,
                 hintText: 'Masukan email',
                 keyboardType: TextInputType.emailAddress,
+                prefixIcon: const Icon(Icons.email_outlined, color: AppPallete.greyText),
               ),
               
               const SizedBox(height: 16),
@@ -72,10 +135,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _passwordController,
                 hintText: 'Masukan kata sandi',
                 isObscure: _isPasswordObscure,
+                prefixIcon: const Icon(Icons.lock_outline, color: AppPallete.greyText),
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _isPasswordObscure 
-                        ? Icons.visibility_off_outlined 
+                    _isPasswordObscure
+                        ? Icons.visibility_off_outlined
                         : Icons.visibility_outlined,
                     color: AppPallete.greyText,
                   ),
@@ -115,16 +179,12 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 32),
               
               // BUTTON LOGIN
-              CustomButton(
-                text: "Masuk",
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => const MainWrapper()),
-                    (route) => false,
-                  );
-                },
-              ),
+              _isLoading 
+                ? const Center(child: CircularProgressIndicator())
+                : CustomButton(
+                    text: "Masuk",
+                    onPressed: _login,
+                  ),
               
               const SizedBox(height: 24),
               
@@ -132,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
               GestureDetector(
                 onTap: () {
                   Navigator.push(
-                    context, 
+                    context,
                     MaterialPageRoute(builder: (context) => const RegisterScreen()),
                   );
                 },
@@ -148,7 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: "Daftar disini",
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.bold,
-                          color: AppPallete.black,
+                          color: AppPallete.primary,
                         ),
                       ),
                     ],

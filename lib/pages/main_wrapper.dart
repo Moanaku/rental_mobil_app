@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
-
-// Import ini akan BERHASIL setelah Anda memindahkan file ke folder yang benar (Langkah 1)
 import 'home_screen.dart';
 import 'wishlist_screen.dart';
 import 'history_screen.dart';
@@ -72,7 +70,6 @@ class _MainWrapperState extends State<MainWrapper> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
-              // FIX: Menghapus strokeWidth yang menyebabkan error
               activeIcon: Icon(Icons.history),
               label: 'Riwayat',
             ),

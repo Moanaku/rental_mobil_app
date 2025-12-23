@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // [TAMBAHAN] Import package intl untuk format tanggal
 import '../core/theme/app_pallete.dart';
 import '../models/vehicle_model.dart';
 import '../widgets/custom_button.dart';
-import 'success_screen.dart'; // Kita akan buat ini di langkah 3
+import 'success_screen.dart';
+import '../services/api_service.dart'; // [IMPORT] Api Service
 
 class PaymentScreen extends StatefulWidget {
-  final VehicleModel vehicle;
+  final Vehicle vehicle;
 
   const PaymentScreen({super.key, required this.vehicle});
 
@@ -14,58 +16,117 @@ class PaymentScreen extends StatefulWidget {
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
-  // Simulasi tanggal yang dipilih
-  String selectedDateRange = "Pilih Tanggal";
+  // State untuk tanggal dan harga
+  DateTime? _startDate;
+  DateTime? _endDate;
+  int rentalDays = 0;
+  double totalPrice = 0;
+  
+  // Loading state untuk tombol
+  bool _isProcessing = false;
 
-  // Fungsi untuk Memunculkan Kalender (Set Jadwal)
-  void _showCalendarModal() {
-    showModalBottomSheet(
+  // Helper format rupiah
+  String _formatCurrency(double price) {
+    if (price == 0) return "Rp 0";
+    try {
+      String priceStr = price.toInt().toString();
+      String result = '';
+      int count = 0;
+      for (int i = priceStr.length - 1; i >= 0; i--) {
+        result = priceStr[i] + result;
+        count++;
+        if (count == 3 && i > 0) {
+          result = '.$result';
+          count = 0;
+        }
+      }
+      return 'Rp $result';
+    } catch (e) {
+      return "Rp Error";
+    }
+  }
+
+  // Fungsi Memunculkan Date Range Picker (Kalender Asli)
+  Future<void> _selectDateRange() async {
+    final DateTime now = DateTime.now();
+    
+    final DateTimeRange? picked = await showDateRangePicker(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return Container(
-          height: 600,
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      firstDate: now, 
+      lastDate: DateTime(now.year + 1), 
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: AppPallete.primary,
+            colorScheme: const ColorScheme.light(primary: AppPallete.primary),
+            buttonTheme: const ButtonThemeData(textTheme: ButtonTextTheme.primary),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(width: 40, height: 4, color: Colors.grey[300]),
-              ),
-              const SizedBox(height: 24),
-              const Center(
-                child: Text(
-                  "Pilih Tanggal",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 24),
-              
-              // Simulasi Kalender (Sesuai gambar image_097205.png)
-              _buildDummyCalendar(),
-
-              const Spacer(),
-              CustomButton(
-                text: "Simpan",
-                onPressed: () {
-                  setState(() {
-                    selectedDateRange = "12 Aug - 17 Aug"; // Dummy Update
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
+          child: child!,
         );
       },
     );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+        rentalDays = picked.duration.inDays + 1; 
+        totalPrice = widget.vehicle.pricePerDay * rentalDays;
+      });
+    }
+  }
+
+  String get _dateRangeText {
+    if (_startDate == null || _endDate == null) {
+      return "Pilih Tanggal";
+    }
+    final start = "${_startDate!.day}/${_startDate!.month}";
+    final end = "${_endDate!.day}/${_endDate!.month}/${_endDate!.year}";
+    return "$start - $end";
+  }
+
+  // [FUNGSI UTAMA] Kirim Data ke Laravel
+  Future<void> _processPayment() async {
+    setState(() {
+      _isProcessing = true; // Tampilkan loading
+    });
+
+    final apiService = ApiService();
+    
+    // Format tanggal ke YYYY-MM-DD agar diterima MySQL Laravel
+    final DateFormat formatter = DateFormat('yyyy-MM-dd');
+    final String startStr = formatter.format(_startDate!);
+    final String endStr = formatter.format(_endDate!);
+
+    bool success = await apiService.createTransaction(
+      vehicleId: widget.vehicle.id,
+      startDate: startStr,
+      endDate: endStr,
+      totalPrice: totalPrice,
+      userId: 1, // [HARDCODE] Sementara ID User 1 (Admin/User Dummy)
+    );
+
+    setState(() {
+      _isProcessing = false;
+    });
+
+    if (success) {
+      if (!mounted) return;
+      // Jika Sukses -> Pindah ke Halaman Sukses
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const SuccessScreen()),
+      );
+    } else {
+      if (!mounted) return;
+      // Jika Gagal -> Tampilkan Pesan Error
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Gagal membuat pesanan. Coba lagi."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -91,7 +152,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            
+
             // 1. KARTU RINGKASAN MOBIL
             Container(
               padding: const EdgeInsets.all(12),
@@ -102,15 +163,21 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 80,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      image: DecorationImage(
-                        image: NetworkImage(widget.vehicle.imageAsset),
-                        fit: BoxFit.cover,
-                      ),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      widget.vehicle.imageUrl,
+                      width: 80,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 80,
+                          height: 60,
+                          color: Colors.grey[200],
+                          child: const Icon(Icons.broken_image, color: Colors.grey),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -124,7 +191,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.vehicle.price,
+                          "${_formatCurrency(widget.vehicle.pricePerDay)}/hari",
                           style: const TextStyle(fontSize: 12, color: AppPallete.greyText),
                         ),
                       ],
@@ -133,14 +200,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 32),
-            
-            // 2. DURASI SEWA
+
+            // 2. DURASI SEWA (PILIH TANGGAL)
             const Text("Durasi Sewa", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
             GestureDetector(
-              onTap: _showCalendarModal, // Buka Modal Kalender
+              onTap: _selectDateRange,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
@@ -155,9 +222,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Date", style: TextStyle(fontSize: 10, color: AppPallete.greyText)),
+                        const Text("Tanggal Sewa", style: TextStyle(fontSize: 10, color: AppPallete.greyText)),
                         Text(
-                          selectedDateRange,
+                          _dateRangeText,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
@@ -202,31 +269,45 @@ class _PaymentScreenState extends State<PaymentScreen> {
             // 4. HARGA DETAIL
             const Text("Harga Detail", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 12),
-            _buildPriceRow("Periode Waktu", "5 Hari"),
+            
+            _buildPriceRow("Periode Waktu", "$rentalDays Hari"),
             const SizedBox(height: 8),
-            _buildPriceRow("Pembayaran", "Rp 2.500.000"),
+            
+            _buildPriceRow("Harga Satuan", _formatCurrency(widget.vehicle.pricePerDay)),
+            const SizedBox(height: 8),
+
+            _buildPriceRow("Subtotal", _formatCurrency(totalPrice)),
+            
             const Divider(height: 24),
+            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text("Total", style: TextStyle(fontWeight: FontWeight.bold)),
-                Text("Rp. 2.500.000", style: TextStyle(fontWeight: FontWeight.bold, color: AppPallete.primary, fontSize: 16)),
+              children: [
+                const Text("Total Pembayaran", style: TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  _formatCurrency(totalPrice),
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppPallete.primary, fontSize: 16),
+                ),
               ],
             ),
 
             const Spacer(),
 
             // 5. TOMBOL KONFIRMASI
-            CustomButton(
-              text: "Konfirmasi & Bayar",
-              onPressed: () {
-                // Navigasi ke Halaman Sukses
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const SuccessScreen()),
-                );
-              },
-            ),
+            // Tampilkan Loading jika sedang proses
+            _isProcessing 
+              ? const Center(child: CircularProgressIndicator())
+              : CustomButton(
+                  text: "Konfirmasi & Bayar",
+                  onPressed: rentalDays == 0 ? () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Silakan pilih tanggal sewa terlebih dahulu")),
+                    );
+                  } : () {
+                    // [AKSI] Panggil fungsi kirim ke server
+                    _processPayment();
+                  },
+                ),
             const SizedBox(height: 20),
           ],
         ),
@@ -240,52 +321,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       children: [
         Text(label, style: const TextStyle(color: AppPallete.greyText)),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-
-  // Widget Dummy Kalender Sederhana (Visual Saja)
-  Widget _buildDummyCalendar() {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: const [
-            Text("Agustus 2025", style: TextStyle(fontWeight: FontWeight.bold)),
-            Icon(Icons.chevron_right),
-          ],
-        ),
-        const SizedBox(height: 16),
-        // Grid Tanggal Statis
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 7,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-          ),
-          itemCount: 31,
-          itemBuilder: (context, index) {
-            final day = index + 1;
-            // Highlight tanggal 12
-            final isSelected = day == 12; 
-            return Container(
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected ? AppPallete.primary : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: Text(
-                "$day",
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppPallete.black,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                ),
-              ),
-            );
-          },
-        ),
       ],
     );
   }

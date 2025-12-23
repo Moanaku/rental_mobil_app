@@ -1,16 +1,63 @@
-// lib/pages/history_screen.dart
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
 import '../widgets/custom_textfield.dart';
-import '../widgets/history_card.dart'; // Import widget baru
+import '../widgets/history_card.dart'; 
+import '../models/transaction_model.dart'; 
+import '../services/api_service.dart'; 
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final TextEditingController searchController = TextEditingController();
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
 
+class _HistoryScreenState extends State<HistoryScreen> {
+  final ApiService _apiService = ApiService();
+  final TextEditingController searchController = TextEditingController();
+  
+  List<TransactionModel> _historyList = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHistory();
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchHistory() async {
+    try {
+      // 1. Ambil User ID dari Penyimpanan Flutter (SharedPreferences)
+      final prefs = await SharedPreferences.getInstance();
+      // Ambil 'user_id', jika belum ada (belum login) pakai default 1
+      final int userId = prefs.getInt('user_id') ?? 1; 
+
+      // 2. Panggil API dengan ID tersebut
+      final data = await _apiService.getHistory(userId);
+      
+      if (mounted) {
+        setState(() {
+          _historyList = data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        debugPrint("Error fetching history: $e");
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppPallete.scaffoldBackground,
       body: SafeArea(
@@ -56,45 +103,29 @@ class HistoryScreen extends StatelessWidget {
 
               const SizedBox(height: 24),
 
-              // 3. LIST RIWAYAT
+              // 3. LIST RIWAYAT DARI API
               Expanded(
-                child: ListView(
-                  children: const [
-                    // Item 1: Menunggu Bayar (Kuning/Orange)
-                    HistoryCard(
-                      name: "Cbr 250Rr",
-                      imageAsset:
-                          "https://statik.tempo.co/data/2022/09/19/id_1142512/1142512_720.jpg",
-                      price: "Rp.50.000",
-                      status: "Menunggu Bayar",
-                      statusColor: Colors.orange,
-                    ),
-
-                    // Item 2: Sedang Disewa (Hijau Muda)
-                    HistoryCard(
-                      name: "Pajero Dakar 4x4",
-                      imageAsset:
-                          "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8d/2019_Mitsubishi_Pajero_Sport_2.4_Dakar_Ultimate_4x2_KR1W_%2820240519%29.jpg/1200px-2019_Mitsubishi_Pajero_Sport_2.4_Dakar_Ultimate_4x2_KR1W_%2820240519%29.jpg",
-                      price: "Rp.500.000",
-                      status: "Sedang Disewa",
-                      statusColor: Color(0xFF76FF03), // Hijau terang
-                    ),
-
-                    // Item 3: Selesai (Hijau Normal)
-                    HistoryCard(
-                      name: "Honda Brio",
-                      imageAsset:
-                          "https://img.cintamobil.com/2021/01/12/20210112104046-6084.png",
-                      price: "Rp.100.000",
-                      status: "Selesai",
-                      statusColor: Color(0xFF00C853), // Hijau standar
-                    ),
-
-                    SizedBox(
-                      height: 80,
-                    ), // Jarak bawah agar tidak tertutup navbar
-                  ],
-                ),
+                child: _isLoading 
+                  ? const Center(child: CircularProgressIndicator())
+                  : _historyList.isEmpty
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.history, size: 60, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text("Belum ada riwayat sewa", style: TextStyle(color: Colors.grey)),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _historyList.length,
+                        itemBuilder: (context, index) {
+                          return HistoryCard(
+                            transaction: _historyList[index],
+                          );
+                        },
+                      ),
               ),
             ],
           ),

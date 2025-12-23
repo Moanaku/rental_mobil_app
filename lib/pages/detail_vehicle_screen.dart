@@ -3,84 +3,77 @@ import '../core/theme/app_pallete.dart';
 import '../models/vehicle_model.dart';
 import '../widgets/custom_button.dart';
 import 'payment_screen.dart';
+import '../services/wishlist_service.dart'; 
 
-class DetailVehicleScreen extends StatelessWidget {
-  final VehicleModel vehicle;
+class DetailVehicleScreen extends StatefulWidget {
+  final Vehicle vehicle;
 
   const DetailVehicleScreen({super.key, required this.vehicle});
 
   @override
+  State<DetailVehicleScreen> createState() => _DetailVehicleScreenState();
+}
+
+class _DetailVehicleScreenState extends State<DetailVehicleScreen> {
+  final WishlistService _wishlistService = WishlistService();
+
+  @override
   Widget build(BuildContext context) {
+    // Cek status saat ini
+    bool isLiked = _wishlistService.isFavorite(widget.vehicle.id);
+
     return Scaffold(
       backgroundColor: AppPallete.scaffoldBackground,
       body: Stack(
         children: [
-          // 1. GAMBAR BACKGROUND (ANTI CRASH)
+          // 1. BACKGROUND IMAGE
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 350,
+            top: 0, left: 0, right: 0, height: 350,
             child: Container(
-              color: Colors.grey[200], // Background sementara
+              color: Colors.grey[200],
               child: Image.network(
-                vehicle.imageAsset,
+                widget.vehicle.imageUrl,
                 fit: BoxFit.cover,
-                // [SOLUSI] Error Handler
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.broken_image_rounded,
-                            size: 60,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            "Gambar Dummy Error",
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+                errorBuilder: (ctx, err, stack) => Container(color: Colors.grey[300]),
               ),
             ),
           ),
 
-          // 2. TOMBOL BACK & FAVORITE
+          // 2. HEADER BUTTONS
           Positioned(
-            top: 50,
-            left: 24,
-            right: 24,
+            top: 50, left: 24, right: 24,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                _buildCircleIcon(Icons.arrow_back_ios_new, onTap: () => Navigator.pop(context)),
+                
+                // TOMBOL FAVORITE INTERAKTIF
                 _buildCircleIcon(
-                  Icons.arrow_back_ios_new,
-                  onTap: () => Navigator.pop(context),
+                  isLiked ? Icons.favorite : Icons.favorite_border,
+                  color: isLiked ? AppPallete.redError : AppPallete.black,
+                  onTap: () {
+                    setState(() {
+                      _wishlistService.toggleWishlist(widget.vehicle);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(isLiked 
+                        ? "Dihapus dari Favorite" 
+                        : "Ditambahkan ke Favorite"))
+                    );
+                  },
                 ),
-                _buildCircleIcon(Icons.favorite_border, onTap: () {}),
               ],
             ),
           ),
 
-          // 3. KONTEN DETAIL
+          // 3. CONTENT
           Positioned.fill(
             top: 280,
             child: Container(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(32),
-                  topRight: Radius.circular(32),
-                ),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -88,50 +81,28 @@ class DetailVehicleScreen extends StatelessWidget {
                   children: [
                     Center(
                       child: Text(
-                        vehicle.name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: AppPallete.black,
-                        ),
+                        widget.vehicle.name,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 24),
-
+                    
                     // Spesifikasi
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildSpecCard(Icons.settings, "Mesin", vehicle.cc),
-                        _buildSpecCard(
-                          Icons.settings_input_component,
-                          "Transmisi",
-                          vehicle.transmission,
-                        ),
-                        _buildSpecCard(
-                          Icons.local_gas_station,
-                          "Bahan Bakar",
-                          "Bensin",
-                        ),
+                        _buildSpecCard(Icons.settings, "Mesin", widget.vehicle.engineCapacity),
+                        _buildSpecCard(Icons.settings_input_component, "Transmisi", widget.vehicle.transmission),
+                        _buildSpecCard(Icons.local_gas_station, "Bahan Bakar", widget.vehicle.fuel),
                       ],
                     ),
+                    
                     const SizedBox(height: 24),
-
-                    // Deskripsi
-                    const Text(
-                      "Deskripsi",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    const Text("Deskripsi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     Text(
-                      "Nikmati perjalanan nyaman dengan ${vehicle.name}. (Data Dummy Slicing).",
-                      style: const TextStyle(
-                        color: AppPallete.greyText,
-                        height: 1.5,
-                      ),
+                      widget.vehicle.description,
+                      style: const TextStyle(color: AppPallete.greyText, height: 1.5),
                     ),
                     const SizedBox(height: 100),
                   ],
@@ -142,40 +113,19 @@ class DetailVehicleScreen extends StatelessWidget {
 
           // 4. BOTTOM BAR
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: 0, left: 0, right: 0,
             child: Container(
               padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
+              decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]),
               child: Row(
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Total Harga",
-                        style: TextStyle(
-                          color: AppPallete.greyText,
-                          fontSize: 12,
-                        ),
-                      ),
+                      const Text("Total Harga", style: TextStyle(color: AppPallete.greyText, fontSize: 12)),
                       Text(
-                        "${vehicle.price}/Hari",
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppPallete.primary,
-                        ),
+                        "Rp ${widget.vehicle.pricePerDay.toStringAsFixed(0)}/Hari",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppPallete.primary),
                       ),
                     ],
                   ),
@@ -184,13 +134,7 @@ class DetailVehicleScreen extends StatelessWidget {
                     child: CustomButton(
                       text: "Sewa Sekarang",
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                PaymentScreen(vehicle: vehicle),
-                          ),
-                        );
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentScreen(vehicle: widget.vehicle)));
                       },
                     ),
                   ),
@@ -203,16 +147,13 @@ class DetailVehicleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCircleIcon(IconData icon, {required VoidCallback onTap}) {
+  Widget _buildCircleIcon(IconData icon, {required VoidCallback onTap, Color color = AppPallete.black}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, size: 20, color: AppPallete.black),
+        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+        child: Icon(icon, size: 20, color: color),
       ),
     );
   }
@@ -221,28 +162,15 @@ class DetailVehicleScreen extends StatelessWidget {
     return Container(
       width: 100,
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF007CC7),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: const Color(0xFF007CC7), borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, color: Colors.white, size: 24),
           const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 10),
-          ),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10)),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
+          Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
         ],
       ),
     );
