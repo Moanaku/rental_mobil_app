@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
-import '../widgets/brand_large_card.dart'; // Pastikan widget ini sudah disesuaikan
+import '../widgets/brand_large_card.dart'; 
 import 'brand_detail_screen.dart';
 import '../services/api_service.dart';
 import '../models/brand_model.dart';
@@ -140,13 +140,8 @@ class _BrandListScreenState extends State<BrandListScreen> {
                         final brand = _brands[index];
                         return BrandLargeCard(
                           brandName: brand.name,
-                          
-                          // [PENTING] Kirim URL Logo ke Widget
-                          // Pastikan BrandLargeCard Anda diubah agar menerima String imageUrl
-                          // bukan IconData.
                           imageUrl: brand.logoUrl, 
                           
-                          // Data dummy karena tabel brands biasanya simpel
                           totalUnits: "Cek Unit", 
                           startPrice: "Lihat Detail", 
                           

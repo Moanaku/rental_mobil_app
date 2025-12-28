@@ -64,8 +64,8 @@ class ApiService {
         }),
       );
 
-      print("📤 Register Status: ${response.statusCode}");
-      print("📥 Register Body: ${response.body}");
+      print("Register Status: ${response.statusCode}");
+      print("Register Body: ${response.body}");
 
       final data = json.decode(response.body);
 
@@ -119,8 +119,8 @@ class ApiService {
         }),
       );
 
-      print("📤 Login Status: ${response.statusCode}");
-      print("📥 Login Body: ${response.body}");
+      print("Login Status: ${response.statusCode}");
+      print("Login Body: ${response.body}");
 
       final data = json.decode(response.body);
 
@@ -309,8 +309,8 @@ class ApiService {
         }),
       );
 
-      print("📤 Update Profile Status: ${response.statusCode}");
-      print("📥 Update Profile Body: ${response.body}");
+      print("Update Profile Status: ${response.statusCode}");
+      print("Update Profile Body: ${response.body}");
 
       final data = json.decode(response.body);
 

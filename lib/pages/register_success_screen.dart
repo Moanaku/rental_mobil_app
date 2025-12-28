@@ -20,7 +20,7 @@ class RegisterSuccessScreen extends StatelessWidget {
               // Placeholder untuk Ilustrasi Awan
               Container(
                 padding: const EdgeInsets.all(20),
-                 decoration: BoxDecoration(
+                decoration: BoxDecoration(
                   color: Colors.blue.withOpacity(0.1), // Warna awan tipis
                   shape: BoxShape.circle,
                 ),

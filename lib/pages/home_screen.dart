@@ -111,7 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               const SizedBox(height: 20),
 
-              // 1. HEADER - ✅ Menampilkan nama user dari login
+              // 1. HEADER - Menampilkan nama user dari login
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -119,7 +119,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Hallo, $_userName", // ✅ Dynamic name
+                        "Hallo, $_userName", // Dynamic name
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -194,7 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 12),
 
-              // ✅ BRAND ITEMS (Dari API dengan Logo)
+              // BRAND ITEMS (Dari API dengan Logo)
               _isLoadingBrands
                   ? const Center(
                       child: Padding(

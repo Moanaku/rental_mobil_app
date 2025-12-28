@@ -37,7 +37,7 @@ class Vehicle {
       name: json['name'] ?? 'Tanpa Nama',
       
       // Mengambil data nested (bersarang) dari relasi brand
-      // Logika: Coba ambil dari object 'brand', kalau null coba ambil langsung 'brand_id'
+      // Logika: ambil dari object 'brand', kalau null coba ambil langsung 'brand_id'
       brandId: json['brand']?['id'] ?? json['brand_id'] ?? 0,
       brandName: json['brand']?['name'] ?? json['brand_name'] ?? 'Unknown Brand',
       

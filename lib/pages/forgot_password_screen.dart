@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../core/theme/app_pallete.dart';
-import 'check_email_screen.dart'; // Kita akan buat file ini di langkah 2
+import 'check_email_screen.dart'; 
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -54,7 +54,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 style: GoogleFonts.poppins(
                   fontSize: 14,
                   color: AppPallete.greyText,
-                  height: 1.5, // Line height agar lebih mudah dibaca
+                  height: 1.5, 
                 ),
               ),
               const SizedBox(height: 32),

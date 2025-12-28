@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
 import '../widgets/custom_button.dart';
-import 'main_wrapper.dart'; // Untuk kembali ke Home
+import 'main_wrapper.dart';
 
 class SuccessScreen extends StatelessWidget {
   const SuccessScreen({super.key});

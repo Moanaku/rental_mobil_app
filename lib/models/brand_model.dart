@@ -14,8 +14,6 @@ class Brand {
     return Brand(
       id: json['id'] ?? 0,
       name: json['name'] ?? 'No Name',
-      // Pastikan di Controller Laravel Anda mengirim 'logo_url' (asset(...))
-      // atau gabungkan manual URL dasar jika Laravel hanya mengirim nama file.
       logoUrl: json['logo_url'] ?? '', 
     );
   }

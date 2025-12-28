@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_pallete.dart';
 import '../widgets/custom_textfield.dart';
 import '../widgets/vehicle_card.dart';
-import '../services/wishlist_service.dart'; // [IMPORT] Service
+import '../services/wishlist_service.dart'; 
 import 'detail_vehicle_screen.dart';
 
 class WishlistScreen extends StatefulWidget {

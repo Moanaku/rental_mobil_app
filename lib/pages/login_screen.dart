@@ -4,7 +4,7 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_textfield.dart';
 import '../core/theme/app_pallete.dart';
 import '../services/api_service.dart';
-import '../services/auth_service.dart'; // Service untuk simpan token
+import '../services/auth_service.dart'; 
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'main_wrapper.dart';
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     // 3. Cek Hasil
     if (result['success'] == true) {
-      // ✅ Simpan token dan user data
+      // Simpan token dan user data
       await AuthService.saveToken(result['token'] ?? '');
       await AuthService.saveUserData(result['data']);
 
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } else {
-      // ❌ Login Gagal
+      //  Login Gagal
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Login Gagal'),

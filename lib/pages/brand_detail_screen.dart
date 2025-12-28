@@ -78,7 +78,6 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
       bool matchesQuery = v.name.toLowerCase().contains(query);
 
       // 2. Filter Kategori (Mobil/Motor)
-      // PERBAIKAN: Menggunakan properti 'category' sesuai Model baru
       bool matchesCategory = true;
       if (_selectedCategory == 1) {
         matchesCategory = v.category == "Mobil"; 
@@ -227,7 +226,6 @@ class _BrandDetailScreenState extends State<BrandDetailScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 24),
                         itemCount: data.length,
                         itemBuilder: (context, index) {
-                          // Pastikan VehicleCard sudah mendukung model 'Vehicle' baru
                           return VehicleCard(
                             vehicle: data[index],
                             onTap: () {

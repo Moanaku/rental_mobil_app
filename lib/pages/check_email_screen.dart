@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../widgets/custom_button.dart';
 import '../core/theme/app_pallete.dart';
-// Import LoginScreen untuk navigasi kembali
 import 'login_screen.dart'; 
 
 class CheckEmailScreen extends StatelessWidget {
@@ -53,7 +52,7 @@ class CheckEmailScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "example@gmail.com", // Bisa dibuat dinamis nanti
+                "example@gmail.com", // Bisa dibuat dinamis 
                 textAlign: TextAlign.center,
                 style: GoogleFonts.poppins(
                   fontSize: 14,
@@ -65,7 +64,6 @@ class CheckEmailScreen extends StatelessWidget {
               CustomButton(
                 text: "Kembali ke Login",
                 onPressed: () {
-                  // Hapus semua history nav dan kembali ke login
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(builder: (context) => const LoginScreen()),
